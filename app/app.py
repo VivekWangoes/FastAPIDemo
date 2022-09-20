@@ -7,7 +7,7 @@ from app.users import (
     auth_backend,
     current_active_user,
     fastapi_users,
-    google_oauth_client,
+    # google_oauth_client,
 )
 from fastapi_users.authentication import Authenticator
 from routers import users
@@ -39,20 +39,20 @@ app.include_router(
 #     prefix="/users",
 #     tags=["users"],
 # )
-app.include_router(
-    fastapi_users.get_oauth_router(google_oauth_client, auth_backend, SECRET),
-    prefix="/auth/google",
-    tags=["auth"],
-)
+# app.include_router(
+#     fastapi_users.get_oauth_router(google_oauth_client, auth_backend, SECRET),
+#     prefix="/auth/google",
+#     tags=["auth"],
+# )
 app.include_router(
     users.router,
     prefix="/member",
     tags=["member"]
     )
 
-@app.get("/authenticated-route")
-async def authenticated_route(user: User = Depends(current_active_user)):
-    return {"message": f"Hello {user.email}!"}
+# @app.get("/authenticated-route")
+# async def authenticated_route(user: User = Depends(current_active_user)):
+#     return {"message": f"Hello {user.email}!"}
 
 
 @app.on_event("startup")
