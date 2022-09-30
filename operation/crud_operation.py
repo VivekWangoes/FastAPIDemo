@@ -2,19 +2,19 @@ import json
 import requests
 import uuid
 from typing import Optional
-
 from fastapi import Depends, Request, HTTPException
 from fastapi_users import BaseUserManager, UUIDIDMixin
 from app.db import User, get_user_db, async_session_maker
-from app.models import Member, UserRegister
+from app.db import Member, UserRegister
 from sqlalchemy import select
 from typing import Awaitable
-from app import config
 import ast
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 SECRET = "SECRET"
-
 
 async def get_member_id(member_id):
     db = async_session_maker()
@@ -41,31 +41,12 @@ async def member_register(vals):
     else:
         raise HTTPException(status_code=404, detail="Email not found")
 
-
-    if "credit_points" in val_lst or "debit_points" in key:
-        if vals["credit_points"] != "" or vals["debit_points"] != 0:
-            val= [(0,0, {
-                "credit_points" : vals["credit_points"],     
-                "debit_points" :  vals["debit_points"]
-            })]
-            vals["point_ids"] = val
-
-        del vals["credit_points"]
-        del vals["debit_points"]
-
     if "date_of_birth" in val_lst:
         if vals["date_of_birth"] == "":
             del vals["date_of_birth"]
 
-    if "reward_ids" in val_lst:
-        if vals["reward_ids"] != "":
-            vals["reward_ids"] = [(0,0, {  
-                "reward" :  vals["reward_ids"]
-            })]
-        else:
-            del vals["reward_ids"]
-
-    print(vals)
+    vals["is_member"] = True
+    vals["name"] = vals["first_name"]
     datas = {
             "jsonrpc": "2.0",
             "method": "call",
@@ -73,17 +54,18 @@ async def member_register(vals):
                 "method": "execute",
                 "service": "object",
                 "args": [
-                    config.database,
-                    config.username,
-                    config.password,
-                    config.models,
-                    "create",
+                    os.getenv('DATABASE_NAME'),
+                    os.getenv('USER_ID'),
+                    os.getenv('USER_PASSWORD'),
+                    os.getenv('MEMBER_MODEL'),
+                    os.getenv('CREATE_METHOD'),
                     vals,
                 ] 
             }  
         }
-    req = requests.post(config.url, json=datas)
+    req = requests.post(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
     db = async_session_maker()
+    print(req)
     user = UserRegister(odoo_member_id=req.json()['result'])
     db.add(user)
     await db.commit()
@@ -91,6 +73,14 @@ async def member_register(vals):
 
 async def json_edit(member_id, vals):
     member_id = await get_member_id(member_id)
+    count = 0
+    for key in vals.keys():
+        if key == "first_name":
+            count = 1
+
+    if count == 1:
+        vals["name"] = vals["first_name"]
+
     if member_id:
         datas = {
             "jsonrpc": "2.0",
@@ -99,20 +89,18 @@ async def json_edit(member_id, vals):
                 "method": "execute",
                 "service": "object",
                 "args": [
-                    config.database,
-                    config.username,
-                    config.password,
-                    config.models,
-                    "write",
+                    os.getenv('DATABASE_NAME'),
+                    os.getenv('USER_ID'),
+                    os.getenv('USER_PASSWORD'),
+                    os.getenv('MEMBER_MODEL'),
+                    os.getenv('WRITE_METHOD'),
                     [member_id],
                     vals
                 ]  
             }  
         }
-        req = requests.put(config.url, json=datas)
+        req = requests.put(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
         return req.json()
-
-        
 
 async def json_read_delete(method, member_id):
     member_id = await get_member_id(member_id)
@@ -125,16 +113,16 @@ async def json_read_delete(method, member_id):
                     "method": "execute",
                     "service": "object",
                     "args": [
-                        config.database,
-                        config.username,
-                        config.password,
-                        config.models,
-                        "read",
+                        os.getenv('DATABASE_NAME'),
+                        os.getenv('USER_ID'),
+                        os.getenv('USER_PASSWORD'),
+                        os.getenv('MEMBER_MODEL'),
+                        os.getenv('READ_METHOD'),
                         [member_id],
                     ]   
                 }  
             }
-            req = requests.get(config.url, json=datas)
+            req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
 
         if method == "unlink":
             datas = {
@@ -144,16 +132,16 @@ async def json_read_delete(method, member_id):
                     "method": "execute",
                     "service": "object",
                     "args": [
-                        config.database,
-                        config.username,
-                        config.password,
-                        config.models,
-                        "unlink",
+                        os.getenv('DATABASE_NAME'),
+                        os.getenv('USER_ID'),
+                        os.getenv('USER_PASSWORD'),
+                        os.getenv('MEMBER_MODEL'),
+                        os.getenv('DELETE_METHOD'),
                         [member_id],
                     ]   
                 }  
             }
-            req = requests.get(config.url, json=datas)
+            req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
         return req.json()
 
 
