@@ -9,12 +9,12 @@ from fastapi_users.db import (
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
 
-from app import models
+
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
-# Base: DeclarativeMeta = declarative_base()
 Base = declarative_base()
-
 
 class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):
     pass
@@ -31,7 +31,7 @@ async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit
 
 async def create_db_and_tables():
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
@@ -41,3 +41,28 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
     yield SQLAlchemyUserDatabase(session, User, OAuthAccount)
+
+
+class Member(Base):
+    __tablename__ = "member"
+
+    id = Column(Integer, primary_key=True, index=True)
+    odoo_member_id = Column(String)
+    fastapi_member_id = Column(String)
+
+    def dict(self):
+        return {
+            "odoo": self.odoo_member_id,
+            "fastapi" : self.fastapi_member_id
+        }
+
+class UserRegister(Base):
+    __tablename__="register_member"
+
+    id = Column(Integer, primary_key=True, index=True)
+    odoo_member_id = Column(String)
+
+    def dict(self):
+        return {
+            "odoo": self.odoo_member_id,
+        }

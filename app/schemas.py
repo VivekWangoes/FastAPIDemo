@@ -22,9 +22,15 @@ class MemberUpdate(BaseModel):
     first_name : Optional[str] = None
     last_name : Optional[str] = None
     email : Optional[str] = None
-    mobile_number : Optional[str] = None
+    mobile: Optional[str] = None
     gender : Optional[str] = None
     date_of_birth : Optional[str] = None
-    credit_points : Optional[str] = None
-    debit_points : Optional[str] = None
-    reward_ids : Optional[str] = None
+
+class CreateRewardWallet(BaseModel):
+    member_id : Optional[str] = None
+    points : Optional[str] = None
+
+class CreateRewardTransaction(BaseModel):
+    wallet_id : Optional[str] = None
+    inventory_id : Optional[str] = None
+    member_id : Optional[str] = None

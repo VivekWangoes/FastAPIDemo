@@ -11,20 +11,19 @@ from fastapi_users.authentication import (
     JWTStrategy,
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
-# from httpx_oauth.clients.google import GoogleOAuth2
+from httpx_oauth.clients.google import GoogleOAuth2
 from app.db import User, get_user_db, async_session_maker
-from app.models import Member, UserRegister
-from app import config
+from app.db import Member, UserRegister
 from sqlalchemy import select, delete
-import time
+from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
+from dotenv import load_dotenv
 
 SECRET = "SECRET"
 
-# google_oauth_client = GoogleOAuth2(
-#     os.getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
-#     os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
-# )
-
+google_oauth_client = GoogleOAuth2(
+    os.getenv("GOOGLE_OAUTH_CLIENT_ID", "798436640829-3jcqbjul3bcnoq8vsvmbra8rso326e3k.apps.googleusercontent.com"),
+    os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "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"),
+)
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
@@ -33,7 +32,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        time.sleep(2)
         db = async_session_maker()
         qry = select(UserRegister)
         member_odoo_id = await db.execute(qry)
@@ -51,7 +49,27 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
     ):
-        print(f"User {user.id} has forgot their password. Reset token: {token}")
+        conf = ConnectionConfig(
+            MAIL_SERVER = os.getenv('MAIL_SERVER'),
+            MAIL_USERNAME = os.getenv('MAIL_USERNAME'),
+            MAIL_PASSWORD = os.getenv('MAIL_PASSWORD'),
+            MAIL_FROM = os.getenv('MAIL_FROM'),
+            MAIL_PORT = os.getenv('MAIL_PORT'),
+        )
+
+        html = """
+            <p>Token is %s </p> 
+            """ %token
+
+        message = MessageSchema(
+        subject="Forgot password token",
+        recipients=[user.email],  # List of recipients, as many as you can pass 
+        body=html,
+        subtype="html"
+        )
+
+        fm = FastMail(conf)
+        await fm.send_message(message)
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Optional[Request] = None
