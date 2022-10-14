@@ -37,15 +37,15 @@ def get_members_router() -> APIRouter:
         return member_data
 
     @router.get("/get_member/{member_id}", 
-        dependencies=[Depends(current_active_user)], include_in_schema=False)
+        dependencies=[Depends(current_active_user)])
     async def get_member(member_id):
-        import pdb; pdb.set_trace()
         if not member_id:
             raise HTTPException(status_code=404, detail="Member not found")
         member_data = await crud_operation.json_read_delete("read", member_id)
         return member_data
 
-    @router.delete("/unlink_member/{member_id}", dependencies=[Depends(current_active_user)], include_in_schema=False)
+    @router.delete("/unlink_member/{member_id}", 
+        dependencies=[Depends(current_active_user)])
     async def unlink_member(member_id):
         if not member_id:
             raise HTTPException(status_code=404, detail="Member not found")

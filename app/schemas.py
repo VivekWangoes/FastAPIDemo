@@ -6,12 +6,7 @@ from datetime import date, datetime
 from fastapi_users import schemas  
 
 class UserRead(schemas.BaseUser[uuid.UUID]):
-    first_name : Optional[str] = None
-    last_name : Optional[str] = None
-    email : Optional[str] = None
-    mobile: Optional[str] = None
-    gender : Optional[str] = None
-    date_of_birth : Optional[str] = None
+   pass
 
 
 class UserCreate(schemas.BaseUserCreate):

@@ -32,8 +32,8 @@ async def get_member_id(member_id):
 
 async def json_edit(member_id, vals):
     member_id = await get_member_id(member_id)
-    count = 0
     vals["name"] = vals.get("first_name", False)
+    
     if member_id:
         datas = {
             "jsonrpc": "2.0",

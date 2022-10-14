@@ -13,7 +13,7 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 
-DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+DATABASE_URL = "sqlite+aiosqlite:///./astons_crm.db"
 Base = declarative_base()
 
 class OAuthAccount(SQLAlchemyBaseOAuthAccountTableUUID, Base):

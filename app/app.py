@@ -13,7 +13,6 @@ from fastapi_users.authentication import Authenticator
 from routers import users, reward
 from fastapi.openapi.utils import get_openapi
 
-
 app = FastAPI()
 
 app.include_router(
@@ -24,8 +23,8 @@ app.include_router(
     fastapi_users.get_register_router(UserDisplay, UserRegistration),
     prefix="/auth",
     tags=["auth"]
-    # dependencies=[Depends(member_register)]
 )
+
 app.include_router(
     fastapi_users.get_reset_password_router(),
     prefix="/auth",

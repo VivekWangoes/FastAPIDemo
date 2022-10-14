@@ -2,10 +2,12 @@ import os
 import uuid
 from typing import Optional
 import requests
-import json
-from uuid import UUID
 from fastapi import Depends, Request, HTTPException
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, exceptions, models, schemas
+import json
+from uuid import UUID
+from fastapi import Depends, Request
+from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -23,14 +25,17 @@ from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
 from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
 from app import schemas
 
+from app.db import Member
+from sqlalchemy import select, delete
+from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
+from dotenv import load_dotenv
 
 SECRET = "SECRET"
 
 google_oauth_client = GoogleOAuth2(
-    os.getenv("GOOGLE_OAUTH_CLIENT_ID", "820978601716-dm0u3d4hgvfrlmjcl3gutmm3l7rglm7v.apps.googleusercontent.com"),
-    os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "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"),
+    os.getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
+    os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
 )
-
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
