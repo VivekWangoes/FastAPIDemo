@@ -16,9 +16,9 @@ load_dotenv()
 
 SECRET = "SECRET"
 
-async def get_member_id(member_id):
+async def get_member_id(email):
     db = async_session_maker()
-    query = select(Member).where(Member.fastapi_member_id == member_id)
+    query = select(Member).where(Member.email == email)
     member_id = await db.execute(query)
     values = member_id.fetchall()
     if values:
@@ -30,10 +30,11 @@ async def get_member_id(member_id):
         raise HTTPException(status_code=404, detail="Member not found")
 
 
-async def json_edit(member_id, vals):
-    member_id = await get_member_id(member_id)
-    vals["name"] = vals.get("first_name", False)
-    
+async def json_edit(email, vals):
+    member_id = await get_member_id(email)
+    if vals.get("first_name", False):
+        vals["name"] = vals.get("first_name")
+
     if member_id:
         datas = {
             "jsonrpc": "2.0",
@@ -53,10 +54,14 @@ async def json_edit(member_id, vals):
             }  
         }
         req = requests.put(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
-        return req.json()
+        if req.json()['result']:
+            vals={
+                "status" : "successfully updated"
+            }
+        return vals
 
-async def json_read_delete(method, member_id):
-    member_id = await get_member_id(member_id)
+async def json_read_delete(method, email):
+    member_id = await get_member_id(email)
     if member_id:
         if method == "read":
             datas = {
@@ -76,6 +81,16 @@ async def json_read_delete(method, member_id):
                 }  
             }
             req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
+            resp = req.json()
+            vals = {
+                "first_name" : resp['result'][0]['first_name'],
+                "last_name" : resp['result'][0]['last_name'],
+                "mobile" : resp['result'][0]['mobile'],
+                "date_of_birth" : resp['result'][0]['date_of_birth'],
+                "gender" : resp['result'][0]['gender'],
+                "points" : resp['result'][0]['points']
+            }
+            return vals
 
         if method == "unlink":
             datas = {
@@ -90,12 +105,14 @@ async def json_read_delete(method, member_id):
                         os.getenv('USER_PASSWORD'),
                         os.getenv('MEMBER_MODEL'),
                         os.getenv('DELETE_METHOD'),
-                        [member_id],
+                        [
+                            json.dumps(member_id)
+                        ],
                     ]   
                 }  
             }
             req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
-        return req.json()
+            return req.json()['result']
 
 
 

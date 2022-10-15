@@ -47,10 +47,8 @@ class UserUpdate(schemas.BaseUserUpdate):
 
 
 class MemberUpdate(BaseModel):
-    id : Optional[str] = None
     first_name : Optional[str] = None
     last_name : Optional[str] = None
-    email : Optional[str] = None
     mobile: Optional[str] = None
     gender : Optional[str] = None
     date_of_birth : Optional[str] = None
@@ -60,6 +58,5 @@ class CreateRewardWallet(BaseModel):
     points : Optional[str] = None
 
 class CreateRewardTransaction(BaseModel):
-    wallet_id : Optional[str] = None
-    inventory_id : Optional[str] = None
-    member_id : Optional[str] = None
+    reward_id : Optional[str] = None
+    email : Optional[str] = None

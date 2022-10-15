@@ -6,66 +6,51 @@ from fastapi import Depends, Request, HTTPException
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, exceptions, models, schemas
 import json
 from uuid import UUID
-from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
 )
-from fastapi_users.db import SQLAlchemyUserDatabase
 from httpx_oauth.clients.google import GoogleOAuth2
-from app.db import User, get_user_db, async_session_maker
-from app.db import Member
-from sqlalchemy import select, delete
-from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
-from dotenv import load_dotenv
 import re
-from httpx_oauth.integrations.fastapi import OAuth2AuthorizeCallback
-from httpx_oauth.oauth2 import BaseOAuth2, OAuth2Token
-from app import schemas
-
-from app.db import Member
-from sqlalchemy import select, delete
 from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
-from dotenv import load_dotenv
+from app.db import User, get_user_db, Member, async_session_maker
+from fastapi_users.db import SQLAlchemyUserDatabase
 
 SECRET = "SECRET"
 
+CLIENT_ID =  os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+
 google_oauth_client = GoogleOAuth2(
-    os.getenv("GOOGLE_OAUTH_CLIENT_ID", ""),
-    os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", ""),
+    os.getenv('GOOGLE_OAUTH_CLIENT_ID', CLIENT_ID),
+    os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', CLIENT_SECRET),
 )
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
-    # user_db: BaseUserDatabase[models.UP, models.ID]
-
-
+    
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-
-        regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        date_format = '%y-%m-%d'
-
-        if not user.email:
-            raise HTTPException(status_code=404, detail="Please Enter Email")
-
-        if not re.fullmatch(regex, user.email):
-            raise HTTPException(status_code=404, detail="Please Enter Valid Email")
-
-        vals = {
-            "first_name": user.first_name,
-            "last_name" : user.last_name,
-            "email" : user.email,
-            "mobile" : user.mobile,
-            "gender" : user.gender,
-            "date_of_birth" : user.date_of_birth,
-            "is_member" : True,
-            "name" : user.first_name,
-            "active" : False 
-        }
-
+        if user.first_name:
+            vals = {
+                "first_name": user.first_name,
+                "last_name" : user.last_name,
+                "email" : user.email,
+                "mobile" : user.mobile,
+                "gender" : user.gender,
+                "date_of_birth" : user.date_of_birth,
+                "is_member" : True,
+                "name" : user.first_name,
+                "active" : False 
+            }
+        else:
+            vals ={
+                "email" : user.email,
+                "name" : user.email,
+                "is_member" : True,
+                "active" : False 
+            }
 
         datas = {
                 "jsonrpc": "2.0",
@@ -108,7 +93,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
         message = MessageSchema(
         subject="Forgot password token",
-        recipients=[user.email],  # List of recipients, as many as you can pass 
+        recipients=[user.email], 
         body=html,
         subtype="html"
         )

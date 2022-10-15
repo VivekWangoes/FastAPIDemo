@@ -3,7 +3,7 @@ import requests
 import os
 from dotenv import load_dotenv
 
-async def get_reward_inventory():
+async def get_reward_inventory(email):
     datas = {
         "jsonrpc": "2.0",
         "method": "call",
@@ -15,8 +15,11 @@ async def get_reward_inventory():
                 os.getenv('USER_ID'),
                 os.getenv('USER_PASSWORD'),
                 os.getenv('REWARD_INVENTORY_MODEL'),
-                os.getenv('SEARCH_READ_METHOD'),
-                [["reward_id", "=", 1]]
+                os.getenv('GET_REWARD_METHOD'),
+                [
+                    json.dumps(email)
+                ]
+                # [["reward_id", "=", 1]]
             ]   
         }  
     }
@@ -64,5 +67,27 @@ async def create_reward_transaction(vals):
         }  
     }   
     req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
-    print(req.json())
-    return req.json()   
+    return req 
+
+async def get_points(member_id):
+    datas = {
+        "jsonrpc": "2.0",
+        "method": "call",
+        "params": {
+            "method": "execute",
+            "service": "object",
+            "args": [
+                os.getenv('DATABASE_NAME'),
+                os.getenv('USER_ID'),
+                os.getenv('USER_PASSWORD'),
+                os.getenv('MEMBER_MODEL'),
+                os.getenv('GET_MEMBER_POINTS'),
+                [
+                    json.dumps(member_id)
+                ],
+            ]   
+        }  
+    }   
+    req = requests.get(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
+    return req.json()['result'] 
+
