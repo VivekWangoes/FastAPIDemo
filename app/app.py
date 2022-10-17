@@ -1,7 +1,7 @@
 from fastapi import Depends, FastAPI
 
 from app.db import User, create_db_and_tables
-from app.schemas import UserCreate, UserRead, UserUpdate
+from app.schemas import UserCreate, UserRead, UserUpdate, UserRegistration, UserDisplay
 from app.users import (
     SECRET,
     auth_backend,
@@ -11,29 +11,30 @@ from app.users import (
 )
 from fastapi_users.authentication import Authenticator
 from routers import users, reward
-from operation.crud_operation import member_register
+from fastapi.openapi.utils import get_openapi
 
 app = FastAPI()
 
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend), prefix="/auth/jwt", tags=["auth"]
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt", tags=["auth"]
 )
 app.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
+    fastapi_users.get_register_router(UserDisplay, UserRegistration),
     prefix="/auth",
-    tags=["auth"],
-     dependencies=[Depends(member_register)]
+    tags=["auth"]
 )
+
 app.include_router(
     fastapi_users.get_reset_password_router(),
     prefix="/auth",
     tags=["auth"],
 )
-app.include_router(
-    fastapi_users.get_verify_router(UserRead),
-    prefix="/auth",
-    tags=["auth"],
-)
+# app.include_router(
+#     fastapi_users.get_verify_router(UserRead),
+#     prefix="/auth",
+#     tags=["auth"],
+# )
 # app.include_router(
 #     fastapi_users.get_users_router(UserRead, UserUpdate),
 #     prefix="/users",
@@ -55,7 +56,6 @@ app.include_router(
     prefix="/reward",
     tags=["reward"]
     )
-
 
 @app.get("/authenticated-route")
 async def authenticated_route(user: User = Depends(current_active_user)):

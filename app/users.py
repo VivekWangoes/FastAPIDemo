@@ -1,50 +1,80 @@
 import os
 import uuid
 from typing import Optional
+import requests
+from fastapi import Depends, Request, HTTPException
+from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, exceptions, models, schemas
 import json
 from uuid import UUID
-from fastapi import Depends, Request
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
 )
-from fastapi_users.db import SQLAlchemyUserDatabase
 from httpx_oauth.clients.google import GoogleOAuth2
-from app.db import User, get_user_db, async_session_maker
-from app.db import Member, UserRegister
-from sqlalchemy import select, delete
+import re
 from fastapi_mail import FastMail, MessageSchema,ConnectionConfig
-from dotenv import load_dotenv
+from app.db import User, get_user_db, Member, async_session_maker
+from fastapi_users.db import SQLAlchemyUserDatabase
 
 SECRET = "SECRET"
 
+CLIENT_ID =  os.getenv("GOOGLE_OAUTH_CLIENT_ID")
+CLIENT_SECRET = os.getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+
 google_oauth_client = GoogleOAuth2(
-    os.getenv("GOOGLE_OAUTH_CLIENT_ID", "798436640829-3jcqbjul3bcnoq8vsvmbra8rso326e3k.apps.googleusercontent.com"),
-    os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "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"),
+    os.getenv('GOOGLE_OAUTH_CLIENT_ID', CLIENT_ID),
+    os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', CLIENT_SECRET),
 )
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
-    # user_db: BaseUserDatabase[models.UP, models.ID]
-
-
+    
     async def on_after_register(self, user: User, request: Optional[Request] = None):
-        db = async_session_maker()
-        qry = select(UserRegister)
-        member_odoo_id = await db.execute(qry)
-        objs = member_odoo_id.fetchall()
-        member_id = objs[0][0].dict()['odoo']
-        user = Member(odoo_member_id=member_id, fastapi_member_id=str(user.id))
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        if user.first_name:
+            vals = {
+                "first_name": user.first_name,
+                "last_name" : user.last_name,
+                "email" : user.email,
+                "mobile" : user.mobile,
+                "gender" : user.gender,
+                "date_of_birth" : user.date_of_birth,
+                "is_member" : True,
+                "name" : user.first_name,
+                "active" : False 
+            }
+        else:
+            vals ={
+                "email" : user.email,
+                "name" : user.email,
+                "is_member" : True,
+                "active" : False 
+            }
 
-        for obj in objs:
-            await db.delete(obj[0])
+        datas = {
+                "jsonrpc": "2.0",
+                "method": "call",
+                "params": {
+                    "method": "execute",
+                    "service": "object",
+                    "args": [
+                        os.getenv('DATABASE_NAME'),
+                        os.getenv('USER_ID'),
+                        os.getenv('USER_PASSWORD'),
+                        os.getenv('MEMBER_MODEL'),
+                        os.getenv('CREATE_METHOD'),
+                        vals,
+                    ] 
+                }  
+            }
+        req = requests.post(os.getenv('ODOO_URL')+"/jsonrpc", json=datas)
+        odoo_id = req.json()['result']
+        fastapi_member = Member(odoo_id=odoo_id, fastapi_id=str(user.id), email = str(user.email))
+        db = async_session_maker()  
+        db.add(fastapi_member)
         await db.commit()
+        await db.refresh(fastapi_member)
         
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None
@@ -63,7 +93,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
         message = MessageSchema(
         subject="Forgot password token",
-        recipients=[user.email],  # List of recipients, as many as you can pass 
+        recipients=[user.email], 
         body=html,
         subtype="html"
         )

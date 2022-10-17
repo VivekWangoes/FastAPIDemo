@@ -17,14 +17,3 @@ class Member(Base):
             "odoo": self.odoo_member_id,
             "fastapi" : self.fastapi_member_id
         }
-
-class UserRegister(Base):
-    __tablename__="register_member"
-
-    id = Column(Integer, primary_key=True, index=True)
-    odoo_member_id = Column(String)
-
-    def dict(self):
-        return {
-            "odoo": self.odoo_member_id,
-        }
